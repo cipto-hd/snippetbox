@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -13,9 +14,10 @@ import (
 )
 
 type application struct {
-	infoLog  *log.Logger
-	errorLog *log.Logger
-	Snippet  *models.SnippetModel
+	infoLog       *log.Logger
+	errorLog      *log.Logger
+	Snippet       *models.SnippetModel
+	templateCache map[string]*template.Template
 }
 
 func main() {
@@ -24,8 +26,8 @@ func main() {
 	dsn := flag.String("dsn", "web:pass@/snippetbox?parseTime=true", "MySQL data source name")
 	flag.Parse()
 
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime|log.LUTC)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile|log.LUTC)
+	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	// To keep the main() function tidy I've put the code for creating a connection
 	// pool into the separate openDB() function below. We pass openDB() the DSN
@@ -38,10 +40,17 @@ func main() {
 	// before the main() function exits.
 	defer db.Close()
 
+	// Initialize a new template cache...
+	templateCache, err := newTemplateCache()
+	if err != nil {
+		errorLog.Fatal(err)
+	}
+
 	app := &application{
-		infoLog:  infoLog,
-		errorLog: errorLog,
-		Snippet:  &models.SnippetModel{DB: db},
+		infoLog:       infoLog,
+		errorLog:      errorLog,
+		Snippet:       &models.SnippetModel{DB: db},
+		templateCache: templateCache,
 	}
 
 	srv := &http.Server{

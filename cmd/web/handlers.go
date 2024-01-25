@@ -10,38 +10,26 @@ import (
 )
 
 func (app application) home(w http.ResponseWriter, r *http.Request) {
+
 	if r.URL.Path != "/" {
 		app.notFound(w)
 		return
 	}
+
 	snippets, err := app.Snippet.Latest()
 	if err != nil {
 		app.serverError(w, err)
 		return
 	}
-	for _, snippet := range snippets {
-		fmt.Fprintf(w, "%+v\n", snippet)
-	}
-	// if r.URL.Path != "/" {
-	// 	app.notFound(w)
-	// 	return
-	// }
 
-	// files := []string{
-	// 	"./ui/html/base.tmpl",
-	// 	"./ui/html/partials/nav.tmpl",
-	// 	"./ui/html/pages/home.tmpl",
-	// }
+	// Call the newTemplateData() helper to get a templateData struct containing
+	// the 'default' data (which for now is just the current year), and add the
+	// snippets slice to it.
+	data := app.newTemplateData(r)
+	data.Snippets = snippets
 
-	// ts, err := template.ParseFiles(files...)
-	// if err != nil {
-	// 	app.serverError(w, err) // Use the serverError() helper.
-	// 	return
-	// }
-	// err = ts.ExecuteTemplate(w, "base", nil)
-	// if err != nil {
-	// 	app.serverError(w, err) // Use the serverError() helper.
-	// }
+	// Use the new render helper.
+	app.render(w, http.StatusOK, "home.tmpl", data)
 }
 
 func (app application) snippetView(w http.ResponseWriter, r *http.Request) {
@@ -62,8 +50,13 @@ func (app application) snippetView(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	// Write the snippet data as a plain-text HTTP response body.
-	fmt.Fprintf(w, "%+v", snippet)
+
+	// And do the same thing again here...
+	data := app.newTemplateData(r)
+	data.Snippet = snippet
+
+	// Use the new render helper.
+	app.render(w, http.StatusOK, "view.tmpl", data)
 }
 
 func (app application) snippetCreate(w http.ResponseWriter, r *http.Request) {
