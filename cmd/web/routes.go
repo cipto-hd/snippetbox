@@ -1,12 +1,15 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"path/filepath"
+
+	"github.com/justinas/alice"
 )
 
-func (app application) routes() *http.ServeMux {
+// Update the signature for the routes() method so that it returns a
+// http.Handler instead of *http.ServeMux.
+func (app application) routes() http.Handler {
 
 	mux := http.NewServeMux()
 
@@ -17,7 +20,17 @@ func (app application) routes() *http.ServeMux {
 	mux.HandleFunc("/snippet/view", app.snippetView)
 	mux.HandleFunc("/snippet/create", app.snippetCreate)
 
-	return mux
+	// Pass the servemux as the 'next' parameter to the secureHeaders middleware.
+	// Because secureHeaders is just a function, and the function returns a
+	// http.Handler we don't need to do anything else.
+	// Wrap the existing chain with the logRequest middleware.
+	// return app.recoverPanic(app.logRequest(secureHeaders(mux)))
+
+	// Create a middleware chain containing our 'standard' middleware
+	// which will be used for every request our application receives.
+	standard := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
+	// Return the 'standard' middleware chain followed by the servemux.
+	return standard.Then(mux)
 }
 
 type neuteredFileSystem struct {
@@ -25,7 +38,6 @@ type neuteredFileSystem struct {
 }
 
 func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
-	log.Println(path)
 
 	f, err := nfs.fs.Open(path)
 	if err != nil {
