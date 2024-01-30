@@ -6,6 +6,8 @@ import (
 
 	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
+
+	"github.com/cipto-hd/snippetbox/ui"
 )
 
 // Update the signature for the routes() method so that it returns a
@@ -22,9 +24,16 @@ func (app application) routes() http.Handler {
 		app.notFound(w)
 	})
 
-	fileServer := http.FileServer(neuteredFileSystem{http.Dir("./ui/static")})
+	fileServer := http.FileServer(neuteredFileSystem{http.FS(ui.Files)})
+
 	// mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
+	// Our static files are contained in the "static" folder of the ui.Files
+	// embedded filesystem. So, for example, our CSS stylesheet is located at
+	// "static/css/main.css". This means that we now longer need to strip the
+	// prefix from the request URL -- any requests that start with /static/ can
+	// just be passed directly to the file server and the corresponding static
+	// file will be served (so long as it exists).
+	router.Handler(http.MethodGet, "/static/*filepath", fileServer)
 
 	// Unprotected application routes using the "dynamic" middleware chain.
 	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf, app.authenticate)
