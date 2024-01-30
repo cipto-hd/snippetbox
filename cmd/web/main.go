@@ -22,6 +22,7 @@ type application struct {
 	infoLog        *log.Logger
 	errorLog       *log.Logger
 	Snippet        *models.SnippetModel
+	User           *models.UserModel
 	templateCache  map[string]*template.Template
 	formDecoder    *form.Decoder
 	sessionManager *scs.SessionManager
@@ -67,6 +68,7 @@ func main() {
 		infoLog:        infoLog,
 		errorLog:       errorLog,
 		Snippet:        &models.SnippetModel{DB: db},
+		User:           &models.UserModel{DB: db},
 		templateCache:  templateCache,
 		formDecoder:    formDecoder,
 		sessionManager: sessionManager,

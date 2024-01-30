@@ -26,20 +26,62 @@ func (app application) routes() http.Handler {
 	// mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
 
-	// Create a new middleware chain containing the middleware specific to our
-	// dynamic application routes. For now, this chain will only contain the
-	// LoadAndSave session middleware but we'll add more to it later.
-	dynamic := alice.New(app.sessionManager.LoadAndSave)
+	// Unprotected application routes using the "dynamic" middleware chain.
+	dynamic := alice.New(app.sessionManager.LoadAndSave, noSurf)
 
-	// mux.HandleFunc("/", app.home)
-	router.Handler(http.MethodGet, "/", dynamic.ThenFunc(app.showHome))
+	addAliceChainToRoutes(router, dynamic, []MethodPathHandlerFunc{
+		{
+			Method:      http.MethodGet,
+			Path:        "/",
+			HandlerFunc: app.showHome,
+		},
+		{
+			Method:      http.MethodGet,
+			Path:        "/snippet/view/:id",
+			HandlerFunc: app.showSnippetView,
+		},
+		{
+			Method:      http.MethodGet,
+			Path:        "/user/signup",
+			HandlerFunc: app.showUserSignup,
+		},
+		{
+			Method:      http.MethodPost,
+			Path:        "/user/signup",
+			HandlerFunc: app.doUserSignup,
+		},
+		{
+			Method:      http.MethodGet,
+			Path:        "/user/login",
+			HandlerFunc: app.showUserLogin,
+		},
+		{
+			Method:      http.MethodPost,
+			Path:        "/user/login",
+			HandlerFunc: app.doUserLogin,
+		},
+	})
 
-	// mux.HandleFunc("/snippet/view", app.snippetView)
-	router.Handler(http.MethodGet, "/snippet/view/:id", dynamic.ThenFunc(app.showSnippetView))
-
-	// mux.HandleFunc("/snippet/create", app.snippetCreate)
-	router.Handler(http.MethodGet, "/snippet/create", dynamic.ThenFunc(app.showSnippetCreate))
-	router.Handler(http.MethodPost, "/snippet/create", dynamic.ThenFunc(app.doSnippetCreate))
+	// Protected (authenticated-only) application routes, using a new "protected"
+	// middleware chain which includes the requireAuthentication middleware.
+	protected := dynamic.Append(app.requireAuthentication)
+	addAliceChainToRoutes(router, protected, []MethodPathHandlerFunc{
+		{
+			Method:      http.MethodGet,
+			Path:        "/snippet/create",
+			HandlerFunc: app.showSnippetCreate,
+		},
+		{
+			Method:      http.MethodPost,
+			Path:        "/snippet/create",
+			HandlerFunc: app.doSnippetCreate,
+		},
+		{
+			Method:      http.MethodPost,
+			Path:        "/user/logout",
+			HandlerFunc: app.doUserLogout,
+		},
+	})
 
 	// Pass the servemux as the 'next' parameter to the secureHeaders middleware.
 	// Because secureHeaders is just a function, and the function returns a
@@ -79,4 +121,16 @@ func (nfs neuteredFileSystem) Open(path string) (http.File, error) {
 	}
 
 	return f, nil
+}
+
+type MethodPathHandlerFunc struct {
+	Method      string
+	Path        string
+	HandlerFunc http.HandlerFunc
+}
+
+func addAliceChainToRoutes(router *httprouter.Router, ac alice.Chain, mphArr []MethodPathHandlerFunc) {
+	for _, mph := range mphArr {
+		router.Handler(mph.Method, mph.Path, ac.ThenFunc(mph.HandlerFunc))
+	}
 }
