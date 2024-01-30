@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-playground/form/v4"
 	_ "github.com/go-sql-driver/mysql" // New import
 
 	"github.com/cipto-hd/snippetbox/internal/models"
@@ -18,6 +19,7 @@ type application struct {
 	errorLog      *log.Logger
 	Snippet       *models.SnippetModel
 	templateCache map[string]*template.Template
+	formDecoder   *form.Decoder
 }
 
 func main() {
@@ -46,11 +48,15 @@ func main() {
 		errorLog.Fatal(err)
 	}
 
+	// Initialize a decoder instance...
+	formDecoder := form.NewDecoder()
+
 	app := &application{
 		infoLog:       infoLog,
 		errorLog:      errorLog,
 		Snippet:       &models.SnippetModel{DB: db},
 		templateCache: templateCache,
+		formDecoder:   formDecoder,
 	}
 
 	srv := &http.Server{

@@ -75,11 +75,10 @@ func (app application) showSnippetView(w http.ResponseWriter, r *http.Request) {
 // must be exported in order to be read by the html/template package when
 // rendering the template.
 type snippetCreateForm struct {
-	Title   string
-	Content string
-	Expires int
-	// FieldErrors map[string]string
-	validator.Validator
+	Title               string `form:"title"`
+	Content             string `form:"content"`
+	Expires             int    `form:"expires"`
+	validator.Validator `form:"-"`
 }
 
 // Add a new snippetCreate handler, which for now returns a placeholder
@@ -100,25 +99,28 @@ func (app application) doSnippetCreate(w http.ResponseWriter, r *http.Request) {
 	// Checking if the request method is a POST is now superfluous and can be
 	// removed, because this is done automatically by httprouter.
 
+	/* Form decoding start */
+	/* Manual decoding */
 	// First we call r.ParseForm() which adds any data in POST request bodies
 	// to the r.PostForm map. This also works in the same way for PUT and PATCH
 	// requests. If there are any errors, we use our app.ClientError() helper to
 	// send a 400 Bad Request response to the user.
-	err := r.ParseForm()
+	/* err := r.ParseForm()
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
 		return
-	}
+	} */
+
 	// Use the r.PostForm.Get() method to retrieve the title and content
 	// from the r.PostForm map.
-	title := r.PostForm.Get("title")
-	content := r.PostForm.Get("content")
+	/* 	title := r.PostForm.Get("title")
+	   	content := r.PostForm.Get("content") */
 	// The r.PostForm.Get() method always returns the form data as a *string*.
 	// However, we're expecting our expires value to be a number, and want to
 	// represent it in our Go code as an integer. So we need to manually covert
 	// the form data to an integer using strconv.Atoi(), and we send a 400 Bad
 	// Request response if the conversion fails.
-	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
+	/* expires, err := strconv.Atoi(r.PostForm.Get("expires"))
 	if err != nil {
 		app.serverError(w, err)
 		return
@@ -129,7 +131,22 @@ func (app application) doSnippetCreate(w http.ResponseWriter, r *http.Request) {
 		Content: content,
 		Expires: expires,
 		// FieldErrors: map[string]string{},
+	} */
+
+	/* Automatic decoding */
+	// Declare a new empty instance of the snippetCreateForm struct.
+	var form snippetCreateForm
+	// Call the Decode() method of the form decoder, passing in the current
+	// request and *a pointer* to our snippetCreateForm struct. This will
+	// essentially fill our struct with the relevant values from the HTML form.
+	// If there is a problem, we return a 400 Bad Request response to the client.
+	err := app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
 	}
+
+	/* Form decoding end */
 
 	/* data validation start */
 	// Because the Validator type is embedded by the snippetCreateForm struct,
