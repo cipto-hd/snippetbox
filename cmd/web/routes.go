@@ -26,15 +26,20 @@ func (app application) routes() http.Handler {
 	// mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
 
+	// Create a new middleware chain containing the middleware specific to our
+	// dynamic application routes. For now, this chain will only contain the
+	// LoadAndSave session middleware but we'll add more to it later.
+	dynamic := alice.New(app.sessionManager.LoadAndSave)
+
 	// mux.HandleFunc("/", app.home)
-	router.HandlerFunc(http.MethodGet, "/", app.showHome)
+	router.Handler(http.MethodGet, "/", dynamic.ThenFunc(app.showHome))
 
 	// mux.HandleFunc("/snippet/view", app.snippetView)
-	router.HandlerFunc(http.MethodGet, "/snippet/view/:id", app.showSnippetView)
+	router.Handler(http.MethodGet, "/snippet/view/:id", dynamic.ThenFunc(app.showSnippetView))
 
 	// mux.HandleFunc("/snippet/create", app.snippetCreate)
-	router.HandlerFunc(http.MethodGet, "/snippet/create", app.showSnippetCreate)
-	router.HandlerFunc(http.MethodPost, "/snippet/create", app.doSnippetCreate)
+	router.Handler(http.MethodGet, "/snippet/create", dynamic.ThenFunc(app.showSnippetCreate))
+	router.Handler(http.MethodPost, "/snippet/create", dynamic.ThenFunc(app.doSnippetCreate))
 
 	// Pass the servemux as the 'next' parameter to the secureHeaders middleware.
 	// Because secureHeaders is just a function, and the function returns a
