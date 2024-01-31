@@ -102,6 +102,16 @@ func (app application) routes() http.Handler {
 			Path:        "/account/view",
 			HandlerFunc: app.showAccountView,
 		},
+		{
+			Method:      http.MethodGet,
+			Path:        "/account/password/update",
+			HandlerFunc: app.showAccountPasswordUpdate,
+		},
+		{
+			Method:      http.MethodPost,
+			Path:        "/account/password/update",
+			HandlerFunc: app.doAccountPasswordUpdate,
+		},
 	})
 
 	// Pass the servemux as the 'next' parameter to the secureHeaders middleware.
