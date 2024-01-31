@@ -97,6 +97,11 @@ func (app application) routes() http.Handler {
 			Path:        "/user/logout",
 			HandlerFunc: app.doUserLogout,
 		},
+		{
+			Method:      http.MethodGet,
+			Path:        "/account/view",
+			HandlerFunc: app.showAccountView,
+		},
 	})
 
 	// Pass the servemux as the 'next' parameter to the secureHeaders middleware.
