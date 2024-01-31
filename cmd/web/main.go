@@ -19,6 +19,7 @@ import (
 )
 
 type application struct {
+	debug          bool // Add a new debug field.
 	infoLog        *log.Logger
 	errorLog       *log.Logger
 	Snippet        models.SnippetModelInterface
@@ -32,6 +33,8 @@ func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
 	// Define a new command-line flag for the MySQL DSN string.
 	dsn := flag.String("dsn", "web:pass@/snippetbox?parseTime=true", "MySQL data source name")
+	// Create a new debug flag with the default value of false.
+	debug := flag.Bool("debug", false, "Enable debug mode")
 	flag.Parse()
 
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
@@ -65,6 +68,7 @@ func main() {
 	sessionManager.Lifetime = 12 * time.Hour
 
 	app := &application{
+		debug:          *debug,
 		infoLog:        infoLog,
 		errorLog:       errorLog,
 		Snippet:        &models.SnippetModel{DB: db},
