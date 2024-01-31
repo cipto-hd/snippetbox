@@ -46,6 +46,10 @@ func (app application) routes() http.Handler {
 			Method:      http.MethodGet,
 			Path:        "/",
 			HandlerFunc: app.showHome,
+		}, {
+			Method:      http.MethodGet,
+			Path:        "/about",
+			HandlerFunc: app.showAbout,
 		},
 		{
 			Method:      http.MethodGet,

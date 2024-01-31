@@ -2,6 +2,8 @@
 <nav>
   <div>
     <a href='/'>Home</a>
+    <!-- Include a new link, visible to all users -->
+    <a href='/about'>About</a>
     <!-- Toggle the link based on authentication status -->
     {{if .IsAuthenticated}}
     <a href='/snippet/create'>Create snippet</a>
